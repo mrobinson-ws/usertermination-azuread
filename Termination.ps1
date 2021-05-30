@@ -119,15 +119,17 @@ while ($quitboxOutput -ne "NO"){
         }
 
         #Request Username(s) To Be Terminated From Script Runner
-        $usernames = $allUsers.Values | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
+        $usernames = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
         
         ##### Start User(s) Loop #####
         foreach ($username in $usernames) {
             $UserInfo = $allusers[$username]
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
-                $sharedMailboxUser = $allUsers.Values | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
-                #need to add "cancel" logic - returns empty (NOT $null) if cancelled but may have data from previous run so need to clear variables - "Exit" command from here will end current function not full script, unsure how to kill whole script
+                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
+                if ($null = $sharedMailboxUser) {
+                    Throw
+                }
             }
             
             #Block Sign In Of User/Force Sign Out Within 60 Minutes
@@ -149,9 +151,9 @@ while ($quitboxOutput -ne "NO"){
 
             #Convert To Shared Mailbox And Hide From GAL When Convert Is Selected, Must Be Done Before Removing Licenses
             if ($ConvertCheckBox.Checked -eq $true) {
-                Write-Verbose -Message "Converting to Shared Mailbox and Hiding from GAL"
+                Write-Verbose -Message "Converting $username to Shared Mailbox and Hiding from GAL"
                 Set-Mailbox $username -Type Shared -HiddenFromAddressListsEnabled $true
-                Write-Verbose -Message "Mailbox converted to Shared, address hidden from GAL"
+                Write-Verbose -Message "Mailbox for $username converted to Shared, address hidden from GAL"
             }
 
             #Grant Access To Shared Mailbox When Grant CheckBox Is Chosen
@@ -192,13 +194,13 @@ while ($quitboxOutput -ne "NO"){
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserObject.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
 
                 #Add User Receiving Access To Terminated User's OneDrive, Add The Access Link To CSV File For Copying
-                Write-Verbose -Message "Adding Manager to OneDrive folder for access to files"
+                Write-Verbose -Message "Adding $SharedMailboxUser to OneDrive folder for access to files"
                 Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedMailboxUserObject.UserPrincipalName -IsSiteCollectionAdmin $True
                 $OneDriveSiteURL | Export-csv -Path  c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation -Append
-                Write-Verbose "OneDrive Data Shared with Manager Successfully, link to copy and give to Manager is $OneDriveSiteURL"
+                Write-Verbose "OneDrive Data Shared with $SharedMailboxUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
             }
             elseif ($OneDriveDiff.Checked -eq $true) {
-                $SharedOneDriveUser = Get-AzureADUser -All $true | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
+                $SharedOneDriveUser = $allusers.Values | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
                 $domainPrefix = ((Get-AzureADDomain | where-object {​$_.name -match ".onmicrosoft.com"}​)[0].name -split '\.')[0]
                 $AdminSiteUrl = "https://$domainPrefix-admin.sharepoint.com"
                 try {
@@ -216,10 +218,10 @@ while ($quitboxOutput -ne "NO"){
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserObject.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
 
                 #Add User Receiving Access To Terminated User's OneDrive, Add The Access Link To CSV File For Copying
-                Write-Verbose -Message "Adding Manager to OneDrive folder for access to files"
+                Write-Verbose -Message "Adding $SharedOneDriveUser to OneDrive folder for access to files"
                 Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedOneDriveUserObject.UserPrincipalName -IsSiteCollectionAdmin $True
                 $OneDriveSiteURL | Export-csv -Path  c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation -Append
-                Write-Verbose "OneDrive Data Shared with Manager Successfully, link to copy and give to Manager is $OneDriveSiteURL"
+                Write-Verbose "OneDrive Data Shared with $SharedOneDriveUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
 
             }
             ##### End OneDrive Block #####
@@ -229,9 +231,7 @@ while ($quitboxOutput -ne "NO"){
         }
         ##### End User(s) Loop #####    
     }
-    else {
-    Exit
-    }
+    else { Throw }
     #Create Quit Prompt and Close While Loop
     $quitboxOutput = [System.Windows.Forms.MessageBox]::Show("Do you need to terminate another user?" , "User Termination(s) Complete" , 4)
 }
