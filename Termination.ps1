@@ -234,6 +234,6 @@ while ($quitboxOutput -ne "NO"){
     else { Throw }
     #Create Quit Prompt and Close While Loop
     $quitboxOutput = [System.Windows.Forms.MessageBox]::Show("Do you need to terminate another user?" , "User Termination(s) Complete" , 4)
-    #Need to clear all variables before starting loop over
+    #Need to clear all variables before starting loop over - I think
 }
 ##### End Main Program Loop #####
