@@ -112,24 +112,27 @@ while ($quitboxOutput -ne "NO"){
     
     #If OK Was Used, Else Exit Script If Selection Box Closed
     if ($OKButton.DialogResult -eq 'OK') {
-        #Request Username(s) To Be Terminated From Script Runner
-        $usernames = Get-AzureADUser -All $true | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
-        if ($usernames="") {
-            Exit
+        #Pull All Azure AD Users and Store Instead Of Calling Whole User List Multiple Times
+        $allUsers = @{}    
+        foreach ($user in Get-AzureADUser -All $true){
+            $allUsers[$user.UserPrincipalName] = $user
         }
-        
 
+        #Request Username(s) To Be Terminated From Script Runner
+        $usernames = $allUsers.Values | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
+        
         ##### Start User(s) Loop #####
         foreach ($username in $usernames) {
+            $UserInfo = $allusers[$username]
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
-            if ($GrantMailboxCheckBox.Checked -eq $true) {
-                $sharedMailboxUser = Get-AzureADUser -All $true | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
+                if ($GrantMailboxCheckBox.Checked -eq $true) {
+                $sharedMailboxUser = $allUsers.Values | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
                 #need to add "cancel" logic - returns empty (NOT $null) if cancelled but may have data from previous run so need to clear variables - "Exit" command from here will end current function not full script, unsure how to kill whole script
             }
             
             #Block Sign In Of User/Force Sign Out Within 60 Minutes
             Write-Verbose -Message "Blocking Sign In to force log out on all sessions within 60 minutes"
-            Set-AzureADUser -ObjectID $username -AccountEnabled $false
+            Set-AzureADUser -ObjectID $UserInfo.ObjectId -AccountEnabled $false
             Write-Verbose -Message "Sign in Blocked"
 
             ##### Start Grant Loop #####
