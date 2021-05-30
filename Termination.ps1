@@ -127,7 +127,7 @@ while ($quitboxOutput -ne "NO"){
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
                 $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
-                if ($null = $sharedMailboxUser) {
+                if ($null -eq $sharedMailboxUser) {
                     Throw
                 }
             }
