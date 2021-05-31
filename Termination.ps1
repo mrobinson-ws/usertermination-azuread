@@ -143,7 +143,6 @@ while ($quitboxOutput -ne "NO"){
             $memberships = Get-AzureADUser -SearchString $username | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
             foreach ($membership in $memberships) {
                 Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId
-                [pscustomobject]@{ GroupRemoved=$membership.DisplayName } | Export-Csv -Path c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation -Append
             }
             ##### End Group Removal Loop #####
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
@@ -177,7 +176,7 @@ while ($quitboxOutput -ne "NO"){
             ##### Start OneDrive Block When OneDrive Same User Selection Is Chosen #####
             #Test And Connect To Sharepoint Online If Needed
             if ($OneDriveSame.Checked -eq $true) {
-                $domainPrefix = ((Get-AzureADDomain | where-object {​$_.name -match ".onmicrosoft.com"}​)[0].name -split '\.')[0]
+                $domainPrefix = ((Get-AzureADDomain | Where-Object Name -match "\.onmicrosoft\.com")[0].Name -split '\.')[0]
                 $AdminSiteUrl = "https://$domainPrefix-admin.sharepoint.com"
                 try {
                     Write-Verbose -Message "Testing connection to SharePoint Online"
@@ -191,12 +190,11 @@ while ($quitboxOutput -ne "NO"){
 
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
                 $SharedMailboxUserObject = Get-AzureADUser -ObjectId "$sharedMailboxUser"
-                $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserObject.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
+                $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
 
                 #Add User Receiving Access To Terminated User's OneDrive, Add The Access Link To CSV File For Copying
                 Write-Verbose -Message "Adding $SharedMailboxUser to OneDrive folder for access to files"
                 Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedMailboxUserObject.UserPrincipalName -IsSiteCollectionAdmin $True
-                $OneDriveSiteURL | Export-csv -Path  c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation -Append
                 Write-Verbose "OneDrive Data Shared with $SharedMailboxUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
             }
             elseif ($OneDriveDiff.Checked -eq $true) {
@@ -215,16 +213,20 @@ while ($quitboxOutput -ne "NO"){
 
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
                 $SharedOneDriveUserObject = Get-AzureADUser -ObjectId "$SharedOneDriveUser"
-                $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserObject.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
+                $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
 
                 #Add User Receiving Access To Terminated User's OneDrive, Add The Access Link To CSV File For Copying
                 Write-Verbose -Message "Adding $SharedOneDriveUser to OneDrive folder for access to files"
                 Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedOneDriveUserObject.UserPrincipalName -IsSiteCollectionAdmin $True
-                $OneDriveSiteURL | Export-csv -Path  c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation -Append
                 Write-Verbose "OneDrive Data Shared with $SharedOneDriveUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
-
             }
             ##### End OneDrive Block #####
+            
+            #Export Groups Removed and OneDrive URL to CSV
+            [pscustomobject]@{
+                GroupRemoved    = $memberships.DisplayName
+                OneDriveSiteURL = $OneDriveSiteURL
+            } | Export-Csv -Path c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation
 
             #Open Created CSV File At End Of Loop For Ease Of Copying OneDrive URL To Give
             Start-Process c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv
