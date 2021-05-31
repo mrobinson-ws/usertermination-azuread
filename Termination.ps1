@@ -217,7 +217,7 @@ while ($quitboxOutput -ne "NO"){
             
             #Export Groups Removed and OneDrive URL to CSV
             [pscustomobject]@{
-                GroupRemoved    = $memberships.DisplayName
+                GroupsRemoved    = $memberships.DisplayName -join ','
                 OneDriveSiteURL = $OneDriveSiteURL
             } | Export-Csv -Path c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation
 
