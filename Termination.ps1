@@ -167,15 +167,15 @@ while ($quitboxOutput -ne "NO"){
             if ($LicenseCheckBox.Checked -eq $true) {
                 Write-Verbose -Message "Removing all licenses"
                 $licenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
-                if($username.assignedlicenses){
-                $licenses.RemoveLicenses = $username.assignedlicenses.SkuId
-                Set-AzureADUserLicense -ObjectId $username -AssignedLicenses $licenses}
+                if($UserInfo.assignedlicenses){
+                $licenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
+                Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $licenses}
                 Write-Verbose -Message "Licenses have all been removed"
             }
             
             ##### Start OneDrive Block When OneDrive Same User Selection Is Chosen #####
             #Test And Connect To Sharepoint Online If Needed
-            if ($OneDriveSame.Checked -eq $true) {
+            if (OneDriveNo.Checked -ne $true) {
                 $domainPrefix = ((Get-AzureADDomain | Where-Object Name -match "\.onmicrosoft\.com")[0].Name -split '\.')[0]
                 $AdminSiteUrl = "https://$domainPrefix-admin.sharepoint.com"
                 try {
@@ -186,8 +186,11 @@ while ($quitboxOutput -ne "NO"){
                 catch {
                     Write-Verbose -Message "Connecting to SharePoint Online"
                     Connect-SPOService -Url $AdminSiteURL
-                }
-
+                } 
+            }
+            
+            #Share OneDrive With Same User(s) as Shared Mailbox
+            if ($OneDriveSame.Checked -eq $true) {
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
                 $SharedMailboxUserObject = Get-AzureADUser -ObjectId "$sharedMailboxUser"
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
@@ -197,20 +200,10 @@ while ($quitboxOutput -ne "NO"){
                 Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedMailboxUserObject.UserPrincipalName -IsSiteCollectionAdmin $True
                 Write-Verbose "OneDrive Data Shared with $SharedMailboxUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
             }
+            #Share OneDrive With Different User(s) than Shared Mailbox
             elseif ($OneDriveDiff.Checked -eq $true) {
                 $SharedOneDriveUser = $allusers.Values | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
-                $domainPrefix = ((Get-AzureADDomain | where-object {​$_.name -match ".onmicrosoft.com"}​)[0].name -split '\.')[0]
-                $AdminSiteUrl = "https://$domainPrefix-admin.sharepoint.com"
-                try {
-                    Write-Verbose -Message "Testing connection to SharePoint Online"
-                    Get-SPOSite -ErrorAction Stop | Out-Null
-                    Write-Verbose -Message "Already connected to SharePoint Online"
-                }
-                catch {
-                    Write-Verbose -Message "Connecting to SharePoint Online"
-                    Connect-SPOService -Url $AdminSiteURL
-                }
-
+                
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
                 $SharedOneDriveUserObject = Get-AzureADUser -ObjectId "$SharedOneDriveUser"
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
