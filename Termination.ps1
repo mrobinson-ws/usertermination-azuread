@@ -175,7 +175,7 @@ while ($quitboxOutput -ne "NO"){
             
             ##### Start OneDrive Block When OneDrive Same User Selection Is Chosen #####
             #Test And Connect To Sharepoint Online If Needed
-            if (OneDriveNo.Checked -ne $true) {
+            if ($OneDriveNo.Checked -ne $true) {
                 $domainPrefix = ((Get-AzureADDomain | Where-Object Name -match "\.onmicrosoft\.com")[0].Name -split '\.')[0]
                 $AdminSiteUrl = "https://$domainPrefix-admin.sharepoint.com"
                 try {
