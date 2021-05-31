@@ -126,7 +126,7 @@ while ($quitboxOutput -ne "NO"){
             $UserInfo = $allusers[$username]
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
-                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
+                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the $username Mailbox with" | Select-Object -ExpandProperty UserPrincipalName
                 if ($null -eq $sharedMailboxUser) {
                     Throw
                 }
@@ -137,16 +137,13 @@ while ($quitboxOutput -ne "NO"){
             Set-AzureADUser -ObjectID $UserInfo.ObjectId -AccountEnabled $false
             Write-Verbose -Message "Sign in Blocked"
 
-            ##### Start Group Removal Loop #####
-            #Remove All Group Memberships And Export To CSV For Record Keeping, CSV Document Will Be In Your Downloads Folder
+            #Remove All Group Memberships
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
             $memberships = Get-AzureADUser -SearchString $username | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
             foreach ($membership in $memberships) {
                 Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId
             }
-            ##### End Group Removal Loop #####
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
-
 
             #Convert To Shared Mailbox And Hide From GAL When Convert Is Selected, Must Be Done Before Removing Licenses
             if ($ConvertCheckBox.Checked -eq $true) {
@@ -155,15 +152,15 @@ while ($quitboxOutput -ne "NO"){
                 Write-Verbose -Message "Mailbox for $username converted to Shared, address hidden from GAL"
             }
 
-            #Grant Access To Shared Mailbox When Grant CheckBox Is Chosen
+            #Grant Access To Shared Mailbox When Grant CheckBox Is Selected
             if ($GrantMailboxCheckBox.Checked -eq $true) {
-                Write-Verbose -Message "Granting access to Shared Mailbox to $sharedMailboxUser"
+                Write-Verbose -Message "Granting access to the $username Shared Mailbox to $sharedMailboxUser"
                 Add-MailboxPermission -Identity $username -User $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
                 Add-RecipientPermission -Identity $username -Trustee $SharedMailboxUser -AccessRights SendAs -Confirm:$False
-                Write-Verbose -Message "Access granted to Shared Mailbox to $sharedMailboxUser"
+                Write-Verbose -Message "Access granted to the $username Shared Mailbox to $sharedMailboxUser"
             }
 
-            #Remove All Licenses When Remove Licenses Is Chosen
+            #Remove All Licenses When Remove Licenses Is Selected
             if ($LicenseCheckBox.Checked -eq $true) {
                 Write-Verbose -Message "Removing all licenses"
                 $licenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
@@ -173,7 +170,7 @@ while ($quitboxOutput -ne "NO"){
                 Write-Verbose -Message "Licenses have all been removed"
             }
             
-            ##### Start OneDrive Block When OneDrive Same User Selection Is Chosen #####
+            ##### Start OneDrive Block #####
             #Test And Connect To Sharepoint Online If Needed
             if ($OneDriveNo.Checked -ne $true) {
                 $domainPrefix = ((Get-AzureADDomain | Where-Object Name -match "\.onmicrosoft\.com")[0].Name -split '\.')[0]
