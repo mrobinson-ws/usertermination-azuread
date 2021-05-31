@@ -137,15 +137,15 @@ while ($quitboxOutput -ne "NO"){
             Set-AzureADUser -ObjectID $UserInfo.ObjectId -AccountEnabled $false
             Write-Verbose -Message "Sign in Blocked"
 
-            ##### Start Grant Loop #####
+            ##### Start Group Removal Loop #####
             #Remove All Group Memberships And Export To CSV For Record Keeping, CSV Document Will Be In Your Downloads Folder
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
             $memberships = Get-AzureADUser -SearchString $username | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
             foreach ($membership in $memberships) {
-                Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $username
+                Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId
                 [pscustomobject]@{ GroupRemoved=$membership.DisplayName } | Export-Csv -Path c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation -Append
             }
-            ##### End Grant Loop #####
+            ##### End Group Removal Loop #####
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
 
 
@@ -159,8 +159,8 @@ while ($quitboxOutput -ne "NO"){
             #Grant Access To Shared Mailbox When Grant CheckBox Is Chosen
             if ($GrantMailboxCheckBox.Checked -eq $true) {
                 Write-Verbose -Message "Granting access to Shared Mailbox to $sharedMailboxUser"
-                Add-RecipientPermission -Identity $username -Trustee $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
-                Add-RecipientPermission -Identity $username -Trustee $SharedMailboxUser -AccessRights SendAs -InheritanceType All
+                Add-MailboxPermission -Identity $username -User $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
+                Add-RecipientPermission -Identity $username -Trustee $SharedMailboxUser -AccessRights SendAs -Confirm:$False
                 Write-Verbose -Message "Access granted to Shared Mailbox to $sharedMailboxUser"
             }
 
