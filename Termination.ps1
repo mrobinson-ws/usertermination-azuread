@@ -96,13 +96,14 @@ while ($quitboxOutput -ne "NO"){
     $MainForm.Controls.Add($OneDriveGroupBox)
 
     #Add An OK Button
+    Clear-Variable OKButton -ea SilentlyContinue
     $OKButton = new-object System.Windows.Forms.Button
     $OKButton.AutoSize = $true
     $OKButton.Location = new-object System.Drawing.Size(137,350)
     $OKButton.Text = "OK"
-    $OKButton.Add_Click({$MainForm.Close()})
+    $OKButton.Add_Click({$MainForm.Close();$OKButton.DialogResult = [System.Windows.Forms.DialogResult]::OK})
     $OKButton.Enabled = $true
-    $OKButton.DialogResult=[System.Windows.Forms.DialogResult]::OK
+    $OKButton.DialogResult=[System.Windows.Forms.DialogResult]::None
     $MainForm.Controls.Add($OKButton)
 
     #Activate The Ma$MainForm
@@ -138,11 +139,10 @@ while ($quitboxOutput -ne "NO"){
             Write-Verbose -Message "Sign in Blocked"
 
             #Remove All Group Memberships
+            $SharedMailboxUserInfo = $allusers[$sharedMailboxUser]
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
-            $memberships = Get-AzureADUser -SearchString $username | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
-            foreach ($membership in $memberships) {
-                Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId
-            }
+            $memberships = $SharedMailboxUserInfo.ObjectId | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
+            foreach ($membership in $memberships) { Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId }
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
 
             #Convert To Shared Mailbox And Hide From GAL When Convert Is Selected, Must Be Done Before Removing Licenses
@@ -188,13 +188,12 @@ while ($quitboxOutput -ne "NO"){
             
             #Share OneDrive With Same User(s) as Shared Mailbox
             if ($OneDriveSame.Checked -eq $true) {
-                #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
-                $SharedMailboxUserObject = Get-AzureADUser -ObjectId "$sharedMailboxUser"
+                #Pull OneDriveSiteURL Dynamically And Grant Access
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
 
                 #Add User Receiving Access To Terminated User's OneDrive, Add The Access Link To CSV File For Copying
                 Write-Verbose -Message "Adding $SharedMailboxUser to OneDrive folder for access to files"
-                Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedMailboxUserObject.UserPrincipalName -IsSiteCollectionAdmin $True
+                Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedMailboxUser -IsSiteCollectionAdmin $True
                 Write-Verbose "OneDrive Data Shared with $SharedMailboxUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
             }
             #Share OneDrive With Different User(s) than Shared Mailbox
@@ -202,12 +201,11 @@ while ($quitboxOutput -ne "NO"){
                 $SharedOneDriveUser = $allusers.Values | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
                 
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
-                $SharedOneDriveUserObject = Get-AzureADUser -ObjectId "$SharedOneDriveUser"
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
 
                 #Add User Receiving Access To Terminated User's OneDrive, Add The Access Link To CSV File For Copying
                 Write-Verbose -Message "Adding $SharedOneDriveUser to OneDrive folder for access to files"
-                Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedOneDriveUserObject.UserPrincipalName -IsSiteCollectionAdmin $True
+                Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedOneDriveUser -IsSiteCollectionAdmin $True
                 Write-Verbose "OneDrive Data Shared with $SharedOneDriveUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
             }
             ##### End OneDrive Block #####
