@@ -8,7 +8,7 @@ Param()
 [void] [System.Windows.Forms.Application]::EnableVisualStyles()
 $quitboxOutput = ""
 
-##### Start Main Program Loop #####
+##### Start Main Loop #####
 #Start While Loop for Quitbox
 while ($quitboxOutput -ne "NO"){
     # Test And Connect To AzureAD If Needed
@@ -108,28 +108,32 @@ while ($quitboxOutput -ne "NO"){
     $OKButton.DialogResult=[System.Windows.Forms.DialogResult]::None
     $MainForm.Controls.Add($OKButton)
 
-    #Activate The Ma$MainForm
+    #Activate The MainForm
     $MainForm.Add_Shown({$MainForm.Activate()})
     [void] $MainForm.ShowDialog()
     ##### End Main Selection Form #####
     
-    #If OK Was Used, Else Exit Script If Selection Box Closed
+    #If OK Was Clicked On Main Form, Else Exit Script If Selection Box Closed
     if ($OKButton.DialogResult -eq 'OK') {
-        #Pull All Azure AD Users and Store Instead Of Calling Whole User List Multiple Times
+        #Pull All Azure AD Users and Store Ib Hash Table Instead Of Calling Get-AzureADUser Multiple Times
         $allUsers = @{}    
         foreach ($user in Get-AzureADUser -All $true){
             $allUsers[$user.UserPrincipalName] = $user
         }
 
-        #Request Username(s) To Be Terminated From Script Runner
+        #Request Username(s) To Be Terminated From Script Runner (Hold Ctrl To Select Multiples)
         $usernames = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
-        
+        #Kill Script If Ok Button Not Clicked
+        if ($null -eq $usernames) {
+            Throw
+        }
         ##### Start User(s) Loop #####
         foreach ($username in $usernames) {
             $UserInfo = $allusers[$username]
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
-                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the $username Mailbox with" | Select-Object -ExpandProperty UserPrincipalName
+                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Single -Title "Please select the user(s) to share the $username Shared Mailbox with" | Select-Object -ExpandProperty UserPrincipalName
+                #Kill Script If Ok Button Not Clicked
                 if ($null -eq $sharedMailboxUser) {
                     Throw
                 }
@@ -141,7 +145,6 @@ while ($quitboxOutput -ne "NO"){
             Write-Verbose -Message "Sign in Blocked"
 
             #Remove All Group Memberships
-            $SharedMailboxUserInfo = $allusers[$sharedMailboxUser]
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
             $memberships = $SharedMailboxUserInfo.ObjectId | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
             foreach ($membership in $memberships) { Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId }
@@ -155,6 +158,7 @@ while ($quitboxOutput -ne "NO"){
             }
 
             #Grant Access To Shared Mailbox When Grant CheckBox Is Selected
+            $SharedMailboxUserInfo = $allusers[$sharedMailboxUser]
             if ($GrantMailboxCheckBox.Checked -eq $true) {
                 Write-Verbose -Message "Granting access to the $username Shared Mailbox to $sharedMailboxUser"
                 Add-MailboxPermission -Identity $username -User $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
@@ -188,7 +192,7 @@ while ($quitboxOutput -ne "NO"){
                 } 
             }
             
-            #Share OneDrive With Same User(s) as Shared Mailbox
+            #Share OneDrive With Same User as Shared Mailbox
             if ($OneDriveSame.Checked -eq $true) {
                 #Pull OneDriveSiteURL Dynamically And Grant Access
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
@@ -200,7 +204,7 @@ while ($quitboxOutput -ne "NO"){
             }
             #Share OneDrive With Different User(s) than Shared Mailbox
             elseif ($OneDriveDiff.Checked -eq $true) {
-                $SharedOneDriveUser = $allusers.Values | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -PassThru -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
+                $SharedOneDriveUser = $allusers.Values | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Single -Title "Please select the user(s) to share the Mailbox and OneDrive with" | Select-Object -ExpandProperty UserPrincipalName
                 
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
@@ -223,9 +227,10 @@ while ($quitboxOutput -ne "NO"){
         }
         ##### End User(s) Loop #####    
     }
+    #Kill Script If "OK" Is Not Clicked On Main Form
     else { Throw }
-    #Create Quit Prompt and Close While Loop
-    $quitboxOutput = [System.Windows.Forms.MessageBox]::Show("Do you need to terminate another user?" , "User Termination(s) Complete" , 4)
-    #Need to clear all variables before starting loop over - I think
+#Create Quit Prompt and Close While Loop
+$quitboxOutput = [System.Windows.Forms.MessageBox]::Show("Do you need to terminate another user?" , "User Termination(s) Complete" , 4)
+#Need to clear all variables before starting loop over - I think
 }
-##### End Main Program Loop #####
+##### End Main Loop #####
