@@ -149,9 +149,8 @@ while ($quitboxOutput -ne "NO"){
             Write-Verbose -Message "Sign in Blocked"
 
             #Remove All Group Memberships
-            $SharedMailboxUserInfo = $allusers[$sharedMailboxUser]
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
-            $memberships = $SharedMailboxUserInfo.ObjectId | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
+            $memberships = $UserInfo.ObjectId | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
             foreach ($membership in $memberships) { Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId }
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
 
@@ -222,7 +221,7 @@ while ($quitboxOutput -ne "NO"){
             
             #Export Groups Removed and OneDrive URL to CSV
             [pscustomobject]@{
-                GroupsRemoved    = $memberships.DisplayName -join ';'
+                GroupsRemoved    = $memberships.DisplayName -join ','
                 OneDriveSiteURL = $OneDriveSiteURL
             } | Export-Csv -Path c:\users\$env:USERNAME\Downloads\$(get-date -f yyyy-MM-dd)_info_on_$username.csv -NoTypeInformation
 
