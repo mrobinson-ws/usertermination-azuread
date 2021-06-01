@@ -1,6 +1,8 @@
 #Requires -Modules AzureAD, ExchangeOnlineManagement, Microsoft.Online.SharePoint.PowerShell
 
 #Declarations
+[CmdletBinding()]
+Param()
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") 
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 [void] [System.Windows.Forms.Application]::EnableVisualStyles()
