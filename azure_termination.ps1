@@ -149,6 +149,7 @@ while ($quitboxOutput -ne "NO"){
             Write-Verbose -Message "Sign in Blocked"
 
             #Remove All Group Memberships
+            $SharedMailboxUserInfo = $allusers[$sharedMailboxUser]
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
             $memberships = $SharedMailboxUserInfo.ObjectId | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
             foreach ($membership in $memberships) { Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId }
@@ -162,7 +163,6 @@ while ($quitboxOutput -ne "NO"){
             }
 
             #Grant Access To Shared Mailbox When Grant CheckBox Is Selected
-            $SharedMailboxUserInfo = $allusers[$sharedMailboxUser]
             if ($GrantMailboxCheckBox.Checked -eq $true) {
                 Write-Verbose -Message "Granting access to the $username Shared Mailbox to $sharedMailboxUser"
                 Add-MailboxPermission -Identity $username -User $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
