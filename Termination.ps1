@@ -68,7 +68,11 @@ while ($quitboxOutput -ne "NO"){
     $GrantMailboxCheckBox.Size = new-object System.Drawing.Size(250,50)
     $GrantMailboxCheckBox.Text = "Share the Mailbox?"
     $GrantMailboxCheckBox.Checked = $true
-    $MainForm.Controls.Add($GrantMailboxCheckBox)  
+    $MainForm.Controls.Add($GrantMailboxCheckBox) 
+    $GrantMailboxCheckBox.Add_CheckStateChanged({ 
+        $OneDriveSame.Enabled = $GrantMailboxCheckBox.Checked 
+        $OneDriveNo.Checked = $true
+    }) 
 
     # Create Group For Radio Buttons
     $OneDriveGroupBox = New-Object System.Windows.Forms.GroupBox
