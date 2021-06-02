@@ -11,6 +11,18 @@ $quitboxOutput = ""
 ##### Start Main Loop #####
 #Start While Loop for Quitbox
 while ($quitboxOutput -ne "NO"){
+    #Clear Variables For Each Loop Iteration
+    Clear-Variable OKButton -ErrorAction SilentlyContinue
+    Clear-Variable usernames -ErrorAction SilentlyContinue
+    Clear-Variable SharedMailboxUser -ErrorAction SilentlyContinue
+    Clear-Variable SharedOneDriveUser -ErrorAction SilentlyContinue
+    Clear-Variable OneDriveSiteURL -ErrorAction SilentlyContinue
+    Clear-Variable allUsers -ErrorAction SilentlyContinue
+    Clear-Variable UserInfo -ErrorAction SilentlyContinue
+    Clear-Variable licenses -ErrorAction SilentlyContinue
+    Clear-Variable AdminSiteUrl -ErrorAction SilentlyContinue
+    Clear-Variable domainPrefix -ErrorAction SilentlyContinue
+
     # Test And Connect To AzureAD If Needed
     try {
         Write-Verbose -Message "Testing connection to Azure AD"
@@ -102,7 +114,6 @@ while ($quitboxOutput -ne "NO"){
     $MainForm.Controls.Add($OneDriveGroupBox)
 
     #Add An OK Button
-    Clear-Variable OKButton -ea SilentlyContinue
     $OKButton = new-object System.Windows.Forms.Button
     $OKButton.AutoSize = $true
     $OKButton.Location = new-object System.Drawing.Size(137,350)
@@ -121,16 +132,13 @@ while ($quitboxOutput -ne "NO"){
     if ($OKButton.DialogResult -eq 'OK') {
         #Pull All Azure AD Users and Store Ib Hash Table Instead Of Calling Get-AzureADUser Multiple Times
         $allUsers = @{}    
-        foreach ($user in Get-AzureADUser -All $true){
-            $allUsers[$user.UserPrincipalName] = $user
-        }
+        foreach ($user in Get-AzureADUser -All $true){ $allUsers[$user.UserPrincipalName] = $user }
 
         #Request Username(s) To Be Terminated From Script Runner (Hold Ctrl To Select Multiples)
         $usernames = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
         #Kill Script If Ok Button Not Clicked
-        if ($null -eq $usernames) {
-            Throw
-        }
+        if ($null -eq $usernames) { Throw
+         }
         ##### Start User(s) Loop #####
         foreach ($username in $usernames) {
             $UserInfo = $allusers[$username]
@@ -138,9 +146,7 @@ while ($quitboxOutput -ne "NO"){
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
                 $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
                 #Kill Script If Ok Button Not Clicked
-                if ($null -eq $sharedMailboxUser) {
-                    Throw
-                }
+                if ($null -eq $sharedMailboxUser) { Throw }
             }
             
             #Block Sign In Of User/Force Sign Out Within 60 Minutes
