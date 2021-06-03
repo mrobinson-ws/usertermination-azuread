@@ -1,12 +1,16 @@
 #Requires -Modules AzureAD, ExchangeOnlineManagement, Microsoft.Online.SharePoint.PowerShell
 
-#Declarations
+#####Declarations#####
+#Allow -Verbose to Work
 [CmdletBinding()]
 Param()
+#Include GUI Elements in Script
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") 
 [void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 [void] [System.Windows.Forms.Application]::EnableVisualStyles()
+#Set variable for loop to function
 $quitboxOutput = ""
+#####End of Declarations#####
 
 ##### Start Main Loop #####
 #Start While Loop for Quitbox
