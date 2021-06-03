@@ -130,9 +130,11 @@ while ($quitboxOutput -ne "NO"){
     
     #If OK Was Clicked On Main Form, Else Exit Script If Selection Box Closed
     if ($OKButton.DialogResult -eq 'OK') {
-        #Pull All Azure AD Users and Store Ib Hash Table Instead Of Calling Get-AzureADUser Multiple Times
+        #Pull All Azure AD Users and Store In Hash Table Instead Of Calling Get-AzureADUser Multiple Times
+        Write-Verbose "Pulling Users, Storing in a Hash Table"
         $allUsers = @{}    
         foreach ($user in Get-AzureADUser -All $true){ $allUsers[$user.UserPrincipalName] = $user }
+        Write-Verbose "Hash Table Filled"
 
         #Request Username(s) To Be Terminated From Script Runner (Hold Ctrl To Select Multiples)
         $usernames = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
@@ -221,7 +223,7 @@ while ($quitboxOutput -ne "NO"){
                 #Add User Receiving Access To Terminated User's OneDrive, Add The Access Link To CSV File For Copying
                 Write-Verbose -Message "Adding $SharedOneDriveUser to OneDrive folder for access to files"
                 Set-SPOUser -Site $OneDriveSiteUrl -LoginName $SharedOneDriveUser -IsSiteCollectionAdmin $True
-                Write-Verbose "OneDrive Data Shared with $SharedOneDriveUser successfully, link to copy and give to Manager is $OneDriveSiteURL"
+                Write-Verbose "OneDrive Data Shared with $SharedOneDriveUser successfully, link to copy and provide to trustee is $OneDriveSiteURL"
             }
             ##### End OneDrive Block #####
             
