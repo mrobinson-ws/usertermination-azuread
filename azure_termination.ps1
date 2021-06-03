@@ -156,7 +156,7 @@ while ($quitboxOutput -ne "NO"){
 
             #Remove All Group Memberships
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
-            $memberships = $UserInfo.ObjectId | Get-AzureADUserMembership | Where-Object {$_.ObjectType -ne "Role"}  | ForEach-Object {Get-AzureADGroup -ObjectId $_.ObjectId | Select-Object DisplayName,ObjectId}
+            $memberships = Get-AzureADUserMembership -ObjectId $username | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
             foreach ($membership in $memberships) { Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId }
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
 
