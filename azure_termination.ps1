@@ -151,6 +151,7 @@ while ($quitboxOutput -ne "NO"){
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
                 $sharedMailboxUser = $allUsers.Values | Where-Object {$_.AccountEnabled -eq '$True'} | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
+                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user to share the $username Shared Mailbox (and OneDrive if Selected) with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
                 #Kill Script If Ok Button Not Clicked
                 if ($null -eq $sharedMailboxUser) { Throw }
             }
@@ -228,6 +229,7 @@ while ($quitboxOutput -ne "NO"){
             #Share OneDrive With Different User(s) than Shared Mailbox
             elseif ($OneDriveDiff.Checked -eq $true) {
                 $SharedOneDriveUser = $allusers.Values | Where-Object {$_.AccountEnabled -eq '$True'} | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the Mailbox and OneDrive with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
+                $SharedOneDriveUser = $allusers.Values | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user to share the OneDrive with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
                 
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
