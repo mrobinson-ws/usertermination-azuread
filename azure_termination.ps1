@@ -141,7 +141,7 @@ while ($quitboxOutput -ne "NO"){
         Write-Verbose "Hash Table Filled"
 
         #Request Username(s) To Be Terminated From Script Runner (Hold Ctrl To Select Multiples)
-        $usernames = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
+        $usernames = $allUsers.Values | Where-Object {$_.AccountEnabled -eq '$True'} | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
         #Kill Script If Ok Button Not Clicked
         if ($null -eq $usernames) { Throw
          }
@@ -150,7 +150,7 @@ while ($quitboxOutput -ne "NO"){
             $UserInfo = $allusers[$username]
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
-                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
+                $sharedMailboxUser = $allUsers.Values | Where-Object {$_.AccountEnabled -eq '$True'} | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
                 #Kill Script If Ok Button Not Clicked
                 if ($null -eq $sharedMailboxUser) { Throw }
             }
@@ -163,7 +163,15 @@ while ($quitboxOutput -ne "NO"){
             #Remove All Group Memberships
             Write-Verbose -Message "Removing all group memberships, skipping Dynamic groups as they cannot be removed this way"
             $memberships = Get-AzureADUserMembership -ObjectId $username | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
-            foreach ($membership in $memberships) { Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId }
+            foreach ($membership in $memberships) { 
+                    $group = Get-AzureADMSGroup -ID $membership.ObjectId
+                    if ($group -eq 'DynamicMembership') {
+                        Write-Verbose "Skipping $group.Displayname as it is dynamic"
+                    }
+                    else{
+                        Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId 
+                    }
+                }
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
 
             #Convert To Shared Mailbox And Hide From GAL When Convert Is Selected, Must Be Done Before Removing Licenses
@@ -219,7 +227,7 @@ while ($quitboxOutput -ne "NO"){
             }
             #Share OneDrive With Different User(s) than Shared Mailbox
             elseif ($OneDriveDiff.Checked -eq $true) {
-                $SharedOneDriveUser = $allusers.Values | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the Mailbox and OneDrive with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
+                $SharedOneDriveUser = $allusers.Values | Where-Object {$_.AccountEnabled -eq '$True'} | Sort-Object Displayname | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the Mailbox and OneDrive with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
                 
                 #Pull Object ID Needed For User Receiving Access To OneDrive And OneDriveSiteURL Dynamically
                 $OneDriveSiteURL = Get-SPOSite -Filter "Owner -eq $($UserInfo.UserPrincipalName)" -IncludePersonalSite $true | Select-Object -ExpandProperty Url            
