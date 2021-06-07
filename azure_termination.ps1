@@ -143,15 +143,13 @@ while ($quitboxOutput -ne "NO"){
         #Request Username(s) To Be Terminated From Script Runner (Hold Ctrl To Select Multiples)
         $usernames = $allUsers.Values | Where-Object {$_.AccountEnabled } | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-Gridview -Passthru -Title "Please select the user(s) to be terminated" | Select-Object -ExpandProperty UserPrincipalName
         #Kill Script If Ok Button Not Clicked
-        if ($null -eq $usernames) { Throw
-         }
+        if ($null -eq $usernames) { Throw }
         ##### Start User(s) Loop #####
         foreach ($username in $usernames) {
             $UserInfo = $allusers[$username]
             #Request User(s) To Share Mailbox With When Grant Access Is Selected
                 if ($GrantMailboxCheckBox.Checked -eq $true) {
                 $sharedMailboxUser = $allUsers.Values | Where-Object {$_.AccountEnabled } | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
-                $sharedMailboxUser = $allUsers.Values | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user to share the $username Shared Mailbox (and OneDrive if Selected) with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
                 #Kill Script If Ok Button Not Clicked
                 if ($null -eq $sharedMailboxUser) { Throw }
             }
@@ -166,7 +164,7 @@ while ($quitboxOutput -ne "NO"){
             $memberships = Get-AzureADUserMembership -ObjectId $username | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
             foreach ($membership in $memberships) { 
                     $group = Get-AzureADMSGroup -ID $membership.ObjectId
-                    if ($group -eq 'DynamicMembership') {
+                    if ($group.GroupTypes -eq 'DynamicMembership') {
                         Write-Verbose "Skipping $group.Displayname as it is dynamic"
                     }
                     else{
