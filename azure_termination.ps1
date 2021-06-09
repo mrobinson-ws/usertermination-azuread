@@ -164,8 +164,8 @@ while ($quitboxOutput -ne "NO"){
             $memberships = Get-AzureADUserMembership -ObjectId $username | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
             foreach ($membership in $memberships) { 
                     $group = Get-AzureADMSGroup -ID $membership.ObjectId
-                    if ($group.GroupTypes -eq 'DynamicMembership') {
-                        Write-Verbose "Skipping $group.Displayname as it is dynamic"
+                    if ($group.GroupTypes -contains 'DynamicMembership') {
+                        Write-Verbose "Skipping $($group.Displayname) as it is dynamic"
                     }
                     else{
                         Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId 
