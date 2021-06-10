@@ -56,6 +56,7 @@ while ($quitboxOutput -ne "NO"){
     $MainForm.height = 425
     $MainForm.MaximizeBox = $false
     $MainForm.MinimizeBox = $false
+    $MainForm.TopMost = $true
     $MainForm.StartPosition = 'CenterScreen'
     $MainForm.Text = "Please select options"
     $MainForm.Font = New-Object System.Drawing.Font("Times New Roman",12)
