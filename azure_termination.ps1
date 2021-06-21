@@ -175,7 +175,7 @@ while ($quitboxOutput -ne "NO"){
                         }
                         catch
                         {
-                            Write_Error "Could not remove from group $($group.name).  Error:  $_.Message"
+                            Write-Error "Could not remove from group $($group.name).  Error:  $_.Message"
                         }
                     }
                 }
