@@ -169,7 +169,14 @@ while ($quitboxOutput -ne "NO"){
                         Write-Verbose "Skipping $($group.Displayname) as it is dynamic"
                     }
                     else{
-                        Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId 
+                        try
+                        {
+                            Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId 
+                        }
+                        catch
+                        {
+                            Write_Error "Could not remove from group $($group.name).  Error:  $_.Message"
+                        }
                     }
                 }
             Write-Verbose -Message "All non-dynamic groups removed, please check your Downloads folder for the file, it will also open automatically at end of user termination"
